@@ -84,12 +84,4 @@
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>
-  <ItemGroup>
-    <None Include="..\.gitattributes">
-      <Filter>git</Filter>
-    </None>
-    <None Include="..\.gitignore">
-      <Filter>git</Filter>
-    </None>
-  </ItemGroup>
 </Project>
