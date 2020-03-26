@@ -109,7 +109,8 @@
       <SubSystem>Console</SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <AdditionalDependencies>SDL2main.lib;SDL2.lib;%(AdditionalDependencies)</AdditionalDependencies>
-      <LinkStatus>false</LinkStatus>
+      <LinkStatus>
+      </LinkStatus>
     </Link>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
@@ -169,6 +170,7 @@
     <ClCompile Include="colon_bmp.cpp" />
     <ClCompile Include="color.cpp" />
     <ClCompile Include="image_array.cpp" />
+    <ClCompile Include="jikan_shuuryouu.bmp.cpp" />
     <ClCompile Include="program.cpp" />
     <ClCompile Include="timer.cpp" />
   </ItemGroup>
@@ -176,6 +178,7 @@
     <ClInclude Include="color.h" />
     <ClInclude Include="global_constants.h" />
     <ClInclude Include="image_array.h" />
+    <ClInclude Include="jikan_shuuryou.bmp.h" />
     <ClInclude Include="program.h" />
     <ClInclude Include="timer.h" />
   </ItemGroup>

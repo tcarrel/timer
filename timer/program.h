@@ -9,6 +9,7 @@
 #include "timer.h"
 #include "image_array.h"
 #include "global_constants.h"
+#include "jikan_shuuryou.bmp.h"
 
 
 
@@ -42,7 +43,7 @@ class Program
     double percentage_remaining_{ 1.0 };
 
 
-    bool show_time_{ true };
+    bool is_time_remaining_{ true };
     bool successful_init_{ false };
     bool quit_{ false };
 
@@ -65,11 +66,15 @@ class Program
     SDL_Rect window_size_{ 0, 0, TIMER_WIDTH + ( 2 * BORDER_THICKNESS ),TIMER_HEIGHT + ( 2 * BORDER_THICKNESS ) };
     SDL_Rect timer_area_{ BORDER_THICKNESS, BORDER_THICKNESS, TIMER_WIDTH, TIMER_HEIGHT };
     double timer_aspect_ratio_{ TIMER_WIDTH_d / TIMER_HEIGHT_d };
+    double shuuryou_scale_{ 1.0 };
     
     std::array<SDL_Texture*, 10> digits_{
         nullptr, nullptr, nullptr, nullptr, nullptr, 
         nullptr, nullptr, nullptr, nullptr, nullptr };
     SDL_Texture* colon_{ nullptr };
+    SDL_Texture* shuuryou_{ nullptr };
+    int shuuryou_width_{ 1 };
+    int shuuryou_height_{ 1 };
 
     struct KEYS
     {
@@ -103,6 +108,7 @@ class Program
     int colon_width( void );
     int scaled_timer_height( void );
     int scaled_timer_width( void );
+    SDL_Rect shuuryou_rect( void );
 
     bool load_sprites( void );
     void update_window_size( void );

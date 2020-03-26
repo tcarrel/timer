@@ -66,6 +66,9 @@
     <ClCompile Include="image_array.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="jikan_shuuryouu.bmp.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="program.h">
@@ -81,6 +84,9 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="image_array.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="jikan_shuuryou.bmp.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>

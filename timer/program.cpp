@@ -13,6 +13,8 @@
 #include "program.h"
 #include "color.h"
 
+#include<algorithm>
+
 
 
 void Program::poll_events( void )
@@ -275,7 +277,7 @@ int Program::main_loop( void )
             }
         }
 
-        if( show_time_ )
+        if( is_time_remaining_ )
         {
             auto m10 = timer_.minutes_tens_place();
             auto m1 = timer_.minutes_ones_place();
@@ -287,7 +289,12 @@ int Program::main_loop( void )
             SDL_RenderCopy( renderer_, colon_, nullptr, character_positions + COLON );
             SDL_RenderCopy( renderer_, digits_[ s10 ], nullptr, character_positions + SECONDS_TENS );
             SDL_RenderCopy( renderer_, digits_[ s1 ], nullptr, character_positions + SECONDS_ONES );
-        };
+        }
+        else
+        {
+            auto rect = shuuryou_rect();
+            SDL_RenderCopy( renderer_, shuuryou_, nullptr, &rect );
+        }
 
         switch( state_ )
         {
@@ -432,27 +439,29 @@ void Program::set_to( void )
 
 void Program::beep( void )
 {
-    static Timer flash{0,1};
-    static bool reset = true;
+    //static Timer flash{0,1};
+    //static bool reset = true;
 
-    if( reset )
-    {
-        flash.set_to( 0, 0, 499 );
-        flash.start();
-        show_time_ = !show_time_;
-        reset = false;
-    }
+    //if( reset )
+    //{
+    //    flash.set_to( 0, 0, 499 );
+    //    flash.start();
+    //    is_time_remaining_ = !is_time_remaining_;
+    //    reset = false;
+    //}
 
-    flash.update();
-    if( flash.done() )
-    {
-        reset = true;
-    }
+    //flash.update();
+    //if( flash.done() )
+    //{
+    //    reset = true;
+    //}
+
+    is_time_remaining_ = false;
 
     if( key.spacebar || key.esc )
     {
-        reset = true;
-        show_time_ = true;
+        //reset = true;
+        is_time_remaining_ = true;
         timer_ = previous_timer_;
         state_ = Program_State::SETTING;
     }
@@ -511,11 +520,11 @@ void Program::set_fg_draw_color( void )
 
 void Program::update_scale_factor( double aspect_ratio )
 {
-    if( aspect_ratio > TIMER_ASPECT_RATIO ) // Window wider than timer.
+    if( aspect_ratio >= TIMER_ASPECT_RATIO ) // Window wider than timer.
     {
-        if( window_size_.h == 0 )
+        if( timer_area_.h == 0 )
         {
-            scale_factor_ = 0;
+            scale_factor_ = 0.0;
         }
         else
         {
@@ -524,19 +533,26 @@ void Program::update_scale_factor( double aspect_ratio )
         timer_x_0 = (( window_size_.w - scaled_timer_width() ) / 2) - BORDER_THICKNESS;
         timer_y_0 = BORDER_THICKNESS;
 
-        return;
-    }
-
-    if( window_size_.w == 0 ) // Window taller than timer.
-    {
-        scale_factor_ = 0;
     }
     else
     {
-        scale_factor_ = static_cast<double>( timer_area_.w ) / TIMER_WIDTH_d;
+        if( timer_area_.w == 0 ) // Window taller than timer.
+        {
+            scale_factor_ = 0.0;
+            shuuryou_scale_ = 0.0;
+        }
+        else
+        {
+            scale_factor_ = static_cast<double>( timer_area_.w ) / TIMER_WIDTH_d;
+        }
+        timer_x_0 = BORDER_THICKNESS;
+        timer_y_0 = ( ( window_size_.h - scaled_timer_height() ) / 2 ) - BORDER_THICKNESS;
     }
-    timer_x_0 = BORDER_THICKNESS;
-    timer_y_0 = ( ( window_size_.h - scaled_timer_height() ) / 2 ) - BORDER_THICKNESS;
+
+    double s_scale_horiz = timer_area_.w / static_cast<double>( shuuryou_width_ );
+    double s_scale_vert = timer_area_.h / static_cast<double>( shuuryou_height_ );
+
+    shuuryou_scale_ = std::min( s_scale_horiz, s_scale_vert );
 }
 
 int Program::number_height( void )
@@ -569,6 +585,18 @@ int Program::scaled_timer_width( void )
     return static_cast<int>( TIMER_WIDTH_d * scale_factor_ );
 }
 
+SDL_Rect Program::shuuryou_rect( void )
+{
+    SDL_Rect rect{};
+
+    rect.w = static_cast<int>( static_cast<double>( shuuryou_width_ ) * shuuryou_scale_ );
+    rect.h = static_cast<int>( static_cast<double>( shuuryou_height_ ) * shuuryou_scale_ );
+    rect.x = ( timer_area_.w - rect.w ) / 2;
+    rect.y = ( timer_area_.h - rect.h ) / 2;
+
+    return rect;
+}
+
 
 
 bool Program::load_sprites( void )
@@ -596,6 +624,13 @@ bool Program::load_sprites( void )
     {
         return BAD;
     }
+
+    shuuryou_ = create_texture_from_Image_Array( get_TIME_UP_jp() );
+    if( !shuuryou_ )
+    {
+        return BAD;
+    }
+    SDL_QueryTexture( shuuryou_, nullptr, nullptr, &shuuryou_width_, &shuuryou_height_ );
 
     return GOOD;
 }
