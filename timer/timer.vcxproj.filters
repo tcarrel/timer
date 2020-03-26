@@ -14,7 +14,7 @@
       <Extensions>rc;ico;cur;bmp;dlg;rc2;rct;bin;rgs;gif;jpg;jpeg;jpe;resx;tiff;tif;png;wav;mfcribbon-ms</Extensions>
     </Filter>
     <Filter Include="git">
-      <UniqueIdentifier>{9d12eaef-1098-44d0-9295-7523ff558ddf}</UniqueIdentifier>
+      <UniqueIdentifier>{acd5bff4-c1c1-412a-a3e7-bbbcf79ff50a}</UniqueIdentifier>
     </Filter>
   </ItemGroup>
   <ItemGroup>
@@ -83,5 +83,10 @@
     <ClInclude Include="image_array.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="..\README.md">
+      <Filter>git</Filter>
+    </None>
   </ItemGroup>
 </Project>
