@@ -13,6 +13,9 @@
       <UniqueIdentifier>{67DA6AB6-F800-4c08-8B7A-83BB121AAD01}</UniqueIdentifier>
       <Extensions>rc;ico;cur;bmp;dlg;rc2;rct;bin;rgs;gif;jpg;jpeg;jpe;resx;tiff;tif;png;wav;mfcribbon-ms</Extensions>
     </Filter>
+    <Filter Include="git">
+      <UniqueIdentifier>{9d12eaef-1098-44d0-9295-7523ff558ddf}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="000__ENTRY_POINT.cpp">
@@ -80,5 +83,13 @@
     <ClInclude Include="image_array.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="..\.gitattributes">
+      <Filter>git</Filter>
+    </None>
+    <None Include="..\.gitignore">
+      <Filter>git</Filter>
+    </None>
   </ItemGroup>
 </Project>
