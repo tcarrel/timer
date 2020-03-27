@@ -29,3 +29,7 @@ probably improve things, but I was in a slight hurry as I was initially working 
 A further 'improvement,' might be to compile SDL2 and it's functionality directly into my executable thereby making it completely
 standalone.  Unfortunately, I'm not yet familiar enough with Visual Studio to be able to get this to work correctly, although I have
 tried.  I also need to make sure it works well with multiple monitors but don't have a second monitor to test it with.
+
+I have now way of testing this on a Mac although I could probably find a way to compile it and I the same applies to Linux for at least
+until I move back to the US and have access to my desktop; I don't particulary like the idea of booting Linux off a USB stick just to
+test this.
