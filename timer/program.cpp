@@ -375,7 +375,7 @@ Program::~Program()
 
 
 
-int Program::main_loop( void )
+int Program::run( void )
 {
     if( !successful_init_ )
     {

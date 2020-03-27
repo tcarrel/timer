@@ -139,7 +139,7 @@ public:
     Program();
     ~Program();
 
-    int main_loop( void );
+    int run( void );
 
     void timing( void );
     void setting_timer( void );
