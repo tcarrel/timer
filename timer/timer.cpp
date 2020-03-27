@@ -4,165 +4,71 @@
 
 Timer::Timer( Timer& t )
     :
-    Timer( t.minutes_, t.seconds_ )
+    Timer( t.total_ms_ )
 {}
 
 
 
 Timer::Timer( Uint8 min, Uint8 sec, Uint32 ms )
-    :
-    minutes_( min ),
-    seconds_( sec ),
-    milliseconds_( ms )
 {
-    if( minutes_ > 99 )
-    {
-        minutes_ = 99;
-    }
-
-    if( seconds_ > 99 )
-    {
-        seconds_ = 99;
-    }
+    setting_timer( min, sec, ms );
 }
+
+
+
+Timer::Timer( Uint32 ms_total )
+    :
+    total_ms_( ms_total )
+{}
+
+
 
 Timer& Timer::operator=( Timer& t )
 {
-    minutes_ = t.minutes_;
-    seconds_ = t.seconds_;
-    milliseconds_ = t.milliseconds_;
+    total_ms_ = t.total_ms_;
 
     return *this;
 }
 
 
 
-void Timer::minutes_up_one( void )
+Uint32 Timer::minutes_tens_place( void )
 {
-    ++minutes_;
-    if( ( minutes_ % 10 ) == 0 )
-    {
-        minutes_ -= 10;
-    }
-    ms_reset();
+    return minutes() / 10;
+}
+
+Uint32 Timer::minutes_ones_place( void )
+{
+    return minutes() % 10;
+}
+
+Uint32 Timer::seconds_tens_place( void )
+{
+    return seconds() / 10;
+}
+
+Uint32 Timer::seconds_ones_place( void )
+{
+    return seconds() % 10;
 }
 
 
 
-void Timer::minutes_down_one( void )
+Uint32 Timer::get_digit( int place )
 {
-    if( (minutes_ % 10) == 0 )
+    switch( place )
     {
-        minutes_ += 10;
+    case Place_MINUTES_10s:
+        return minutes_tens_place();
+    case Place_MINUTES_1s:
+        return minutes_ones_place();
+    case Place_SECONDS_10s:
+        return seconds_tens_place();
+    case Place_SECONDS_1s:
+        return seconds_ones_place();
+    default:
+        return 0xffff'ffff;
     }
-    --minutes_;
-    ms_reset();
-}
-
-
-
-void Timer::seconds_up_one( void )
-{
-    ++seconds_;
-    if( ( seconds_ % 10 ) == 0 )
-    {
-        seconds_ -= 10;
-    }
-    ms_reset();
-}
-
-
-
-void Timer::seconds_down_one( void )
-{
-    if( ( seconds_ % 10 ) == 0 )
-    {
-        seconds_ += 10;
-    }
-    --seconds_;
-    ms_reset();
-}
-
-void Timer::minutes_up_ten( void )
-{
-    if( minutes_ > 89 )
-    {
-        minutes_ %= 10;
-    }
-    else
-    {
-        minutes_ += 10;
-    }
-    ms_reset();
-}
-
-void Timer::minutes_down_ten( void )
-{
-    if( minutes_ < 10 )
-    {
-        minutes_ += 90;
-    }
-    else
-    {
-        minutes_ -= 10;
-    }
-    ms_reset();
-}
-
-void Timer::seconds_up_ten( void )
-{
-    if( seconds_ > 89 )
-    {
-        seconds_ %= 10;
-    }
-    else
-    {
-        seconds_ += 10;
-    }
-    ms_reset();
-}
-
-void Timer::seconds_down_ten( void )
-{
-    if( seconds_ < 10 )
-    {
-        seconds_ += 90;
-    }
-    else
-    {
-        seconds_ -= 10;
-    }
-    ms_reset();
-}
-
-
-
-int Timer::minutes_tens_place( void )
-{
-    return minutes_ / 10;
-}
-
-int Timer::minutes_ones_place( void )
-{
-    return minutes_ % 10;
-}
-
-int Timer::seconds_tens_place( void )
-{
-    return seconds_ / 10;
-}
-
-int Timer::seconds_ones_place( void )
-{
-    return seconds_ % 10;
-}
-
-int Timer::ms_remain( void )
-{
-    return
-          ( static_cast<int>( minutes_ ) * 60 * 1000 )
-        + ( static_cast<int>( seconds_ ) * 1000 )
-        +  static_cast<int>( milliseconds_ );
 }
 
 
@@ -178,7 +84,6 @@ void Timer::update( void )
 {
     if( done() )
     {
-        // noise
         return;
     }
 
@@ -192,83 +97,60 @@ void Timer::update( void )
 
 
 
-void Timer::set_to( Uint8 m, Uint8 s, Uint32 ms )
+void Timer::setting_timer( Uint32 m10, Uint32 m1, Uint32 s10, Uint32 s1, Uint32 ms )
 {
-    minutes_ = m;
-    seconds_ = s;
-    milliseconds_ = ms;
+    setting_timer( static_cast<Uint8>( ( m10 * 10 ) + m1 ), static_cast<Uint8>( ( s10 * 10 ) + s1 ), ms );
+}
+
+
+
+void Timer::setting_timer( Uint8 m, Uint8 s, Uint32 ms )
+{
+    total_ms_ = ( static_cast<Uint32>( m ) * 60000 ) + ( static_cast<Uint32>( s ) * 60 ) + ms;
 }
 
 
 
 bool Timer::done( void )
 {
-    return minutes_ == 0 && seconds_ == 0 && milliseconds_ == 0;
+    return total_ms_ == 0;
 }
 
-Uint32 Timer::current_m( void )
+Uint32 Timer::minutes( void )
 {
-    return static_cast<Uint32>( minutes_ );
+    return total_ms_ / 60000;
 }
 
-Uint32 Timer::current_s( void )
+Uint32 Timer::seconds( void )
 {
-    return static_cast<Uint32>( seconds_ );
+    return ( total_ms_ / 1000 ) % 60;
 }
 
-Uint32 Timer::current_ms( void )
+Uint32 Timer::milliseconds_in_second( void )
 {
-    return milliseconds_;
+    return total_ms_ % 1000;
+}
+
+Uint32 Timer::milliseconds( void )
+{
+    return total_ms_;
 }
 
 
 
 void Timer::decrement_by_ms( Uint32 t )
 {
-    if( milliseconds_ == 0 )
+    if( total_ms_ == 0 )
     {
-        milliseconds_ = 999;
-        decrement_one_second();
-    }
-
-    while( t > 1000 )
-    {
-        decrement_one_second();
-        t -= 1000;
-    }
-
-    if( t > milliseconds_ )
-    {
-        decrement_one_second();
-        t -= milliseconds_;
-        milliseconds_ = 999;
-    }
-
-    milliseconds_ -= t;
-}
-
-
-
-void Timer::decrement_one_second( void )
-{
-    if( seconds_ == 0 )
-    {
-        if( minutes_ == 0 )
-        {
-            return;
-        }
-
-        seconds_ = 59;
-        --minutes_;
         return;
     }
 
-    --seconds_;
-}
 
+    if( t >= total_ms_ )
+    {
+        total_ms_ = 0;
+        return;
+    }
 
-
-void Timer::ms_reset( void )
-{
-    milliseconds_ = 999;
+    total_ms_ -= t;
 }
