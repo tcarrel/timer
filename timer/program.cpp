@@ -10,6 +10,7 @@
 
 
 #include "global_constants.h"
+#include "inc_dec-rementers.h"
 #include "program.h"
 #include "color.h"
 
@@ -58,6 +59,8 @@ void Program::react_to_window_event( Uint8 e )
     }
 }
 
+
+
 void Program::update_key_states( SDL_KeyboardEvent keyvent )
 {
     if( keyvent.windowID == SDL_GetWindowID( window_ ) )
@@ -99,6 +102,15 @@ void Program::update_key_states( SDL_KeyboardEvent keyvent )
 }
 
 
+
+void Program::start_timing( void )
+{
+    timer_.setting_timer(
+    ( set_digits_[ Place_MINUTES_10s ] * 10 ) + set_digits_[ Place_MINUTES_1s ],
+        ( set_digits_[ Place_SECONDS_10s ] * 10 ) + set_digits_[ Place_SECONDS_1s ] );
+    total_time_ = timer_.milliseconds();
+    update_remaining_time();
+}
 
 bool Program::start_frame( void )
 {
@@ -148,14 +160,7 @@ void Program::end_frame( void )
 
 SDL_Texture* Program::create_texture_from_Image_Array( Image_Array* arr )
 {
-    auto surf = SDL_CreateRGBSurface( 0,
-                                      static_cast<int>( arr->w ), static_cast<int>( arr->h ), 32,
-                                      arr->rmask, arr->gmask, arr->bmask, arr->amask );
-
-    for( unsigned i = 0; i < arr->p; i++ )
-    {
-        *( reinterpret_cast<Uint32*>( surf->pixels ) + i ) = SDL_MapRGBA( surf->format, 255, 255, 255, arr->alpha[ i ] );
-    }
+    auto surf = create_surface_from_Image_Array( arr );
 
     auto tex = SDL_CreateTextureFromSurface( renderer_, surf );
     if( !tex )
@@ -171,6 +176,115 @@ SDL_Texture* Program::create_texture_from_Image_Array( Image_Array* arr )
     delete arr;
     arr = nullptr;
     return tex;
+}
+
+SDL_Surface* Program::create_surface_from_Image_Array( Image_Array* arr )
+{
+    auto surf = SDL_CreateRGBSurface( 0,
+                                      static_cast<int>( arr->w ), static_cast<int>( arr->h ), 32,
+                                      arr->rmask, arr->gmask, arr->bmask, arr->amask );
+
+    for( unsigned i = 0; i < arr->p; i++ )
+    {
+        Uint8 r = arr->red ? arr->red[ i ] : 0xff;
+        Uint8 g = arr->green ? arr->green[ i ] : 0xff;
+        Uint8 b = arr->blue ? arr->blue[ i ] : 0xff;
+        Uint8 a = arr->alpha ? arr->alpha[ i ] : 0xff;
+
+        *( reinterpret_cast<Uint32*>( surf->pixels ) + i ) = SDL_MapRGBA( surf->format, r, g, b, a );
+    }
+
+    return surf;
+}
+
+
+
+void Program::change_state_to( Program_State new_state )
+{
+    auto old_state = state_;
+    state_ = new_state;
+    switch( old_state )
+    {
+    case Program_State::SETTING:
+        selected_digit_ = MINUTES_TENS;
+        switch( new_state )
+        {
+        case Program_State::RUNNING:
+            previous_timer_ = timer_;
+            timer_.setting_timer(
+                set_digits_[ Place_MINUTES_10s ],
+                set_digits_[ Place_MINUTES_1s ],
+                set_digits_[ Place_SECONDS_10s ],
+                set_digits_[ Place_SECONDS_1s ],
+                set_ms_ );
+            timer_.start();
+            return;
+        case Program_State::BEEPING:
+            is_time_remaining_ = false;
+            return;
+        default: // includes new_state same as current state and impossible state changes.
+            return;
+        }
+    case Program_State::RUNNING:
+        switch( new_state )
+        {
+        case Program_State::SETTING:
+            timer_ = previous_timer_;
+            for( Uint32 i = 0; i < Place_COUNT; i++ )
+            {
+                set_digits_[ i ] = timer_.get_digit( i );
+            }
+            set_ms_ = 0;
+            return;
+        case Program_State::PAUSED:
+            for( Uint32 i = 0; i < Place_COUNT; i++ )
+            {
+                set_digits_[ i ] = timer_.get_digit( i );
+            }
+            set_ms_ = timer_.milliseconds_in_second();
+            return;
+        case Program_State::BEEPING:
+            for( Uint32 i = 0; i < Place_COUNT; i++ )
+            {
+                set_digits_[ i ] = previous_timer_.get_digit( i );
+            }
+            set_ms_ = previous_timer_.milliseconds_in_second();
+            return;
+            return;
+        default: // includes new_state same as current state and impossible state changes.
+            return;
+        }
+    case Program_State::BEEPING:
+        switch( new_state )
+        {
+        case Program_State::SETTING:
+            is_time_remaining_ = true;
+            timer_ = previous_timer_;
+            return;
+        default: // includes new_state same as current state and impossible state changes.
+            return;
+        }
+    case Program_State::PAUSED:
+        switch( new_state )
+        {
+        case Program_State::SETTING:
+            timer_ = previous_timer_;
+            for( Uint32 i = 0; i < Place_COUNT; i++ )
+            {
+                set_digits_[ i ] = timer_.get_digit( i );
+            }
+            set_ms_ = timer_.milliseconds_in_second();
+            return;
+        case Program_State::RUNNING:
+            timer_.start();
+            return;
+        default: // includes new_state same as current state and impossible state changes.
+            return;
+        }
+        return;
+    default:
+        return;
+    }
 }
 
 
@@ -200,6 +314,11 @@ Program::Program()
 
         return;
     }
+    auto icon = create_surface_from_Image_Array( get_window_icon() );
+    SDL_SetWindowIcon( window_, icon );
+    SDL_FreeSurface( icon );
+    icon = nullptr;
+
     update_window_size();
 
     renderer_ = SDL_CreateRenderer( window_, -1, 0 );
@@ -277,35 +396,22 @@ int Program::main_loop( void )
             }
         }
 
-        if( is_time_remaining_ )
-        {
-            auto m10 = timer_.minutes_tens_place();
-            auto m1 = timer_.minutes_ones_place();
-            auto s10 = timer_.seconds_tens_place();
-            auto s1 = timer_.seconds_ones_place();
-
-            SDL_RenderCopy( renderer_, digits_[ m10 ], nullptr, character_positions + MINUTES_TENS );
-            SDL_RenderCopy( renderer_, digits_[ m1 ], nullptr, character_positions + MINUTES_ONES );
-            SDL_RenderCopy( renderer_, colon_, nullptr, character_positions + COLON );
-            SDL_RenderCopy( renderer_, digits_[ s10 ], nullptr, character_positions + SECONDS_TENS );
-            SDL_RenderCopy( renderer_, digits_[ s1 ], nullptr, character_positions + SECONDS_ONES );
-        }
-        else
-        {
-            auto rect = shuuryou_rect();
-            SDL_RenderCopy( renderer_, shuuryou_, nullptr, &rect );
-        }
-
         switch( state_ )
         {
+        case Program_State::PAUSED:
+            if( key.esc )
+            {
+                change_state_to( Program_State::SETTING );
+            }
+            //Fall through...
         case Program_State::SETTING:
-            set_to();
+            setting_timer();
             continue;
-        case Program_State::TIMING:
-            time();
+        case Program_State::RUNNING:
+            timing();
             continue;
         case Program_State::BEEPING:
-            beep();
+            beeping();
             continue;
         default:
             return -11;
@@ -317,153 +423,142 @@ int Program::main_loop( void )
 
 
 
-void Program::time( void )
+void Program::timing( void )
 {
-    static bool started = false;
-
-    if( !started )
-    {
-        started = true;
-        previous_timer_ = timer_;
-        timer_.start();
-    }
-
     timer_.update();
     update_remaining_time();
 
-    if( key.spacebar )
+    SDL_RenderCopy( renderer_, digits_[ timer_.minutes_tens_place() ], nullptr, character_positions + MINUTES_TENS );
+    SDL_RenderCopy( renderer_, digits_[ timer_.minutes_ones_place() ], nullptr, character_positions + MINUTES_ONES );
+    SDL_RenderCopy( renderer_, colon_, nullptr, character_positions + COLON );
+    SDL_RenderCopy( renderer_, digits_[ timer_.seconds_tens_place() ], nullptr, character_positions + SECONDS_TENS );
+    SDL_RenderCopy( renderer_, digits_[ timer_.seconds_ones_place() ], nullptr, character_positions + SECONDS_ONES );
+
+    if( key.esc )
     {
-        state_ = Program_State::SETTING;
-        started = false;
+        change_state_to( Program_State::SETTING );
+        return;
     }
 
-    if( timer_.ms_remain() == 0 )
+    if( key.spacebar )
     {
-        state_ = Program_State::BEEPING;
-        started = false;
+        change_state_to( Program_State::PAUSED );
+        return;
+    }
+
+    if( timer_.done() )
+    {
+        change_state_to( Program_State::BEEPING );
+        return;
     }
 }
 
 
 
-void Program::set_to( void )
+void Program::setting_timer( void )
 {
-    static int selected = MINUTES_ONES;
-
     if( key.spacebar )
     {
-        state_ = Program_State::TIMING;
-        previous_timer_ = timer_;
+        change_state_to( Program_State::RUNNING );
         return;
     }
 
     if( key.esc )
     {
-        timer_ = previous_timer_;
-        return;
+        for( Uint32 i = 0; i < Place_COUNT; i++ )
+        {
+            set_digits_[ i ] = previous_timer_.get_digit( i );
+        }
     }
 
     if( key.left )
     {
-        --selected;
-        if( selected < MINUTES_TENS )
+        --selected_digit_;
+        if( selected_digit_ < MINUTES_TENS )
         {
-            selected = SECONDS_ONES;
+            selected_digit_ = SECONDS_ONES;
         }
-        if( selected == COLON )
+        if( selected_digit_ == COLON )
         {
-            selected = MINUTES_ONES;
+            selected_digit_ = MINUTES_ONES;
         }
     }
 
     if( key.right )
     {
-        ++selected;
-        if( selected > SECONDS_ONES )
+        ++selected_digit_;
+        if( selected_digit_ > SECONDS_ONES )
         {
-            selected = MINUTES_TENS;
+            selected_digit_ = MINUTES_TENS;
         }
-        if( selected == COLON )
+        if( selected_digit_ == COLON )
         {
-            selected = SECONDS_TENS;
+            selected_digit_ = SECONDS_TENS;
         }
     }
 
     SDL_SetRenderDrawColor( renderer_, hl_color_.r, hl_color_.g, hl_color_.b, 255 );
-    SDL_RenderDrawRect( renderer_, &character_positions[ selected ] );
+    SDL_RenderDrawRect( renderer_, &character_positions[ selected_digit_ ] );
 
     if( key.up )
     {
-        switch( selected )
+        set_ms_ = 0;
+        switch( selected_digit_ )
         {
         case MINUTES_TENS:
-            timer_.minutes_up_ten();
+            increment_digit( set_digits_[ Place_MINUTES_10s ] );
             break;
         case MINUTES_ONES:
-            timer_.minutes_up_one();
+            increment_digit( set_digits_[ Place_MINUTES_1s ] );
             break;
         case SECONDS_TENS:
-            timer_.seconds_up_ten();
+            increment_digit( set_digits_[ Place_SECONDS_10s ] );
             break;
         case SECONDS_ONES:
-            timer_.seconds_up_one();
+            increment_digit( set_digits_[ Place_SECONDS_1s ] );
         default:
             break;
         }
+
     }
     else if( key.down )
     {
-        switch( selected)
+        set_ms_ = 0;
+        switch( selected_digit_ )
         {
         case MINUTES_TENS:
-            timer_.minutes_down_ten();
+            decrement_digit( set_digits_[ Place_MINUTES_10s ] );
             break;
         case MINUTES_ONES:
-            timer_.minutes_down_one();
+            decrement_digit( set_digits_[ Place_MINUTES_1s ] );
             break;
         case SECONDS_TENS:
-            timer_.seconds_down_ten();
+            decrement_digit( set_digits_[ Place_SECONDS_10s ] );
             break;
         case SECONDS_ONES:
-            timer_.seconds_down_one();
-            break;
+            decrement_digit( set_digits_[ Place_SECONDS_1s ] );
         default:
             break;
         }
     }
-    total_time_ = timer_.ms_remain();
-    update_remaining_time();
+
+    SDL_RenderCopy( renderer_, digits_[ set_digits_[ Place_MINUTES_10s ] ], nullptr, character_positions + MINUTES_TENS );
+    SDL_RenderCopy( renderer_, digits_[ set_digits_[ Place_MINUTES_1s ] ], nullptr, character_positions + MINUTES_ONES );
+    SDL_RenderCopy( renderer_, colon_, nullptr, character_positions + COLON );
+    SDL_RenderCopy( renderer_, digits_[ set_digits_[ Place_SECONDS_10s ] ], nullptr, character_positions + SECONDS_TENS );
+    SDL_RenderCopy( renderer_, digits_[ set_digits_[ Place_SECONDS_1s ] ], nullptr, character_positions + SECONDS_ONES );
 }
 
 
 
-void Program::beep( void )
+void Program::beeping( void )
 {
-    //static Timer flash{0,1};
-    //static bool reset = true;
-
-    //if( reset )
-    //{
-    //    flash.set_to( 0, 0, 499 );
-    //    flash.start();
-    //    is_time_remaining_ = !is_time_remaining_;
-    //    reset = false;
-    //}
-
-    //flash.update();
-    //if( flash.done() )
-    //{
-    //    reset = true;
-    //}
-
-    is_time_remaining_ = false;
+    auto rect = shuuryou_rect();
+    SDL_RenderCopy( renderer_, shuuryou_, nullptr, &rect );
 
     if( key.spacebar || key.esc )
     {
-        //reset = true;
-        is_time_remaining_ = true;
-        timer_ = previous_timer_;
-        state_ = Program_State::SETTING;
+        change_state_to( Program_State::SETTING );
     }
 }
 
@@ -471,7 +566,7 @@ void Program::beep( void )
 
 void Program::update_remaining_time( void )
 {
-    time_remaining_ = timer_.ms_remain();
+    time_remaining_ = timer_.milliseconds();
     percentage_remaining_ = static_cast<double>( time_remaining_ ) / static_cast<double>( total_time_ );
 }
 
@@ -496,9 +591,9 @@ void Program::update_title( void )
               "%s - %s: %i:%02i.%03i",
               PROGRAM_NAME,
               state_name( state_ ),
-              timer_.current_m(),
-              timer_.current_s(),
-              timer_.current_ms() );
+              timer_.minutes(),
+              timer_.seconds(),
+              timer_.milliseconds_in_second() );
     SDL_SetWindowTitle( window_, window_title_ );
 }
 
@@ -700,7 +795,7 @@ const char* state_name( Program_State state )
     {
     case Program_State::SETTING:
         return "Stopped";
-    case Program_State::TIMING:
+    case Program_State::RUNNING:
         return "Remaining";
     case Program_State::BEEPING:
         return "Beeping";

@@ -8,6 +8,7 @@
 #include "color.h"
 #include "timer.h"
 #include "image_array.h"
+#include "window_icon.h"
 #include "global_constants.h"
 #include "jikan_shuuryou.bmp.h"
 
@@ -27,10 +28,15 @@ enum Character_Positions
 enum class Program_State
 {
     SETTING,
-    TIMING,
-    BEEPING
+    RUNNING,
+    BEEPING,
+    PAUSED
 };
 const char* state_name( Program_State state );
+inline bool is_running( Program_State s )
+{
+    return s == Program_State::RUNNING;
+}
 
 
 
@@ -38,10 +44,11 @@ class Program
 {
     Timer timer_{ 2, 0 };
     Timer previous_timer_{ 2,0 };
-    int total_time_{ 120000 };
-    int time_remaining_{ 120000 };
+    Uint32 total_time_{ 120000 };
+    Uint32 time_remaining_{ 120000 };
     double percentage_remaining_{ 1.0 };
-
+    Uint32 set_digits_[ 4 ]{ 0, 2, 0, 0 };
+    Uint32 set_ms_{ 0 };
 
     bool is_time_remaining_{ true };
     bool successful_init_{ false };
@@ -91,9 +98,10 @@ class Program
     SDL_Event event_handler_{};
     bool frame_first{ true };
 
-    Program_State state_ = Program_State::SETTING;
-    Program_State previous_state_ = Program_State::SETTING;
-    bool state_changed_ = false;
+    int selected_digit_{ MINUTES_ONES };
+    Program_State state_{ Program_State::SETTING };
+    Program_State previous_state_{ Program_State::SETTING };
+    bool state_changed_{ false };
 
     void update_remaining_time( void );
 
@@ -118,10 +126,14 @@ class Program
     void react_to_window_event( Uint8 e );
     void update_key_states( SDL_KeyboardEvent keyvent );
 
+    void start_timing( void );
     bool start_frame( void );
     void end_frame( void );
 
     SDL_Texture* create_texture_from_Image_Array( Image_Array* arr );
+    SDL_Surface* create_surface_from_Image_Array( Image_Array* arr );
+
+    void change_state_to( Program_State new_state );
 
 public:
     Program();
@@ -129,8 +141,8 @@ public:
 
     int main_loop( void );
 
-    void time( void );
-    void set_to( void );
-    void beep( void );
+    void timing( void );
+    void setting_timer( void );
+    void beeping( void );
 };
 
