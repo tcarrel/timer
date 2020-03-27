@@ -217,10 +217,8 @@ void Program::change_state_to( Program_State new_state )
                 set_digits_[ Place_SECONDS_10s ],
                 set_digits_[ Place_SECONDS_1s ],
                 set_ms_ );
+            total_time_ = timer_.milliseconds();
             timer_.start();
-            return;
-        case Program_State::BEEPING:
-            is_time_remaining_ = false;
             return;
         default: // includes new_state same as current state and impossible state changes.
             return;
@@ -235,6 +233,7 @@ void Program::change_state_to( Program_State new_state )
                 set_digits_[ i ] = timer_.get_digit( i );
             }
             set_ms_ = 0;
+            total_time_ = timer_.milliseconds();
             return;
         case Program_State::PAUSED:
             for( Uint32 i = 0; i < Place_COUNT; i++ )
@@ -276,6 +275,7 @@ void Program::change_state_to( Program_State new_state )
             set_ms_ = timer_.milliseconds_in_second();
             return;
         case Program_State::RUNNING:
+            total_time_ = timer_.milliseconds();
             timer_.start();
             return;
         default: // includes new_state same as current state and impossible state changes.
@@ -399,10 +399,11 @@ int Program::run( void )
         switch( state_ )
         {
         case Program_State::PAUSED:
-            if( key.esc )
-            {
-                change_state_to( Program_State::SETTING );
-            }
+            //   Basically the same as setting the timer, having a seperate
+            // function to for the PAUSED state would create more code
+            // duplication than just letting setting_timer() deal with the
+            // minor differences.
+
             //Fall through...
         case Program_State::SETTING:
             setting_timer();
@@ -465,6 +466,10 @@ void Program::setting_timer( void )
 
     if( key.esc )
     {
+        if( state_ == Program_State::PAUSED )
+        {
+            change_state_to( Program_State::SETTING );
+        }
         for( Uint32 i = 0; i < Place_COUNT; i++ )
         {
             set_digits_[ i ] = previous_timer_.get_digit( i );
@@ -502,6 +507,10 @@ void Program::setting_timer( void )
 
     if( key.up )
     {
+        if( state_ == Program_State::PAUSED )
+        {
+            change_state_to( Program_State::SETTING );
+        }
         set_ms_ = 0;
         switch( selected_digit_ )
         {
@@ -519,10 +528,14 @@ void Program::setting_timer( void )
         default:
             break;
         }
-
+        total_time_ = timer_.milliseconds();
     }
     else if( key.down )
     {
+        if( state_ == Program_State::PAUSED )
+        {
+            change_state_to( Program_State::SETTING );
+        }
         set_ms_ = 0;
         switch( selected_digit_ )
         {
@@ -540,6 +553,7 @@ void Program::setting_timer( void )
         default:
             break;
         }
+        total_time_ = timer_.milliseconds();
     }
 
     SDL_RenderCopy( renderer_, digits_[ set_digits_[ Place_MINUTES_10s ] ], nullptr, character_positions + MINUTES_TENS );

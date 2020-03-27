@@ -7,7 +7,7 @@ constexpr bool BAD{ !GOOD };
 
 constexpr auto PROGRAM_NAME = "Timer";
 
-constexpr int BORDER_THICKNESS = 4;
+constexpr int BORDER_THICKNESS = 2;
 constexpr int CHARACTER_HEIGHT = 613;
 constexpr int NUMBER_WIDTH = 429;
 constexpr int COLON_WIDTH = 200;
