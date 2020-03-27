@@ -173,14 +173,17 @@
     <ClCompile Include="jikan_shuuryouu.bmp.cpp" />
     <ClCompile Include="program.cpp" />
     <ClCompile Include="timer.cpp" />
+    <ClCompile Include="window_icon.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="color.h" />
     <ClInclude Include="global_constants.h" />
     <ClInclude Include="image_array.h" />
+    <ClInclude Include="inc_dec-rementers.h" />
     <ClInclude Include="jikan_shuuryou.bmp.h" />
     <ClInclude Include="program.h" />
     <ClInclude Include="timer.h" />
+    <ClInclude Include="window_icon.h" />
   </ItemGroup>
   <ItemGroup>
     <None Include="..\README.md" />
