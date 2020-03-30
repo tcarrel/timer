@@ -11,7 +11,7 @@ Timer::Timer( Timer& t )
 
 Timer::Timer( Uint8 min, Uint8 sec, Uint32 ms )
 {
-    setting_timer( min, sec, ms );
+    set( min, sec, ms );
 }
 
 
@@ -97,16 +97,16 @@ void Timer::update( void )
 
 
 
-void Timer::setting_timer( Uint32 m10, Uint32 m1, Uint32 s10, Uint32 s1, Uint32 ms )
+void Timer::set( Uint32 m10, Uint32 m1, Uint32 s10, Uint32 s1, Uint32 ms )
 {
-    setting_timer( static_cast<Uint8>( ( m10 * 10 ) + m1 ), static_cast<Uint8>( ( s10 * 10 ) + s1 ), ms );
+    set( static_cast<Uint8>( ( m10 * 10 ) + m1 ), static_cast<Uint8>( ( s10 * 10 ) + s1 ), ms );
 }
 
 
 
-void Timer::setting_timer( Uint8 m, Uint8 s, Uint32 ms )
+void Timer::set( Uint8 m, Uint8 s, Uint32 ms )
 {
-    total_ms_ = ( static_cast<Uint32>( m ) * 60000 ) + ( static_cast<Uint32>( s ) * 60 ) + ms;
+    total_ms_ = ( static_cast<Uint32>( m ) * 60000 ) + ( static_cast<Uint32>( s ) * 1000 ) + ms;
 }
 
 

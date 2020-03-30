@@ -103,15 +103,6 @@ void Program::update_key_states( SDL_KeyboardEvent keyvent )
 
 
 
-void Program::start_timing( void )
-{
-    timer_.setting_timer(
-    ( set_digits_[ Place_MINUTES_10s ] * 10 ) + set_digits_[ Place_MINUTES_1s ],
-        ( set_digits_[ Place_SECONDS_10s ] * 10 ) + set_digits_[ Place_SECONDS_1s ] );
-    total_time_ = timer_.milliseconds();
-    update_remaining_time();
-}
-
 bool Program::start_frame( void )
 {
     poll_events();
@@ -199,31 +190,31 @@ SDL_Surface* Program::create_surface_from_Image_Array( Image_Array* arr )
 
 
 
-void Program::change_state_to( Program_State new_state )
+void Program::change_state_to( Program_State new_state, bool pause_to_set_via_arrow_key )
 {
     auto old_state = state_;
     state_ = new_state;
     switch( old_state )
     {
     case Program_State::SETTING:
-        selected_digit_ = MINUTES_TENS;
         switch( new_state )
         {
         case Program_State::RUNNING:
-            previous_timer_ = timer_;
-            timer_.setting_timer(
+            timer_.set(
                 set_digits_[ Place_MINUTES_10s ],
                 set_digits_[ Place_MINUTES_1s ],
                 set_digits_[ Place_SECONDS_10s ],
                 set_digits_[ Place_SECONDS_1s ],
                 set_ms_ );
-            total_time_ = timer_.milliseconds();
+            update_remaining_time( true );
+            previous_timer_ = timer_;
             timer_.start();
             return;
         default: // includes new_state same as current state and impossible state changes.
             return;
         }
     case Program_State::RUNNING:
+        selected_digit_ = MINUTES_ONES;
         switch( new_state )
         {
         case Program_State::SETTING:
@@ -233,7 +224,7 @@ void Program::change_state_to( Program_State new_state )
                 set_digits_[ i ] = timer_.get_digit( i );
             }
             set_ms_ = 0;
-            total_time_ = timer_.milliseconds();
+            update_remaining_time( true );
             return;
         case Program_State::PAUSED:
             for( Uint32 i = 0; i < Place_COUNT; i++ )
@@ -241,6 +232,7 @@ void Program::change_state_to( Program_State new_state )
                 set_digits_[ i ] = timer_.get_digit( i );
             }
             set_ms_ = timer_.milliseconds_in_second();
+            update_remaining_time( true );
             return;
         case Program_State::BEEPING:
             for( Uint32 i = 0; i < Place_COUNT; i++ )
@@ -249,7 +241,6 @@ void Program::change_state_to( Program_State new_state )
             }
             set_ms_ = previous_timer_.milliseconds_in_second();
             return;
-            return;
         default: // includes new_state same as current state and impossible state changes.
             return;
         }
@@ -257,25 +248,30 @@ void Program::change_state_to( Program_State new_state )
         switch( new_state )
         {
         case Program_State::SETTING:
-            is_time_remaining_ = true;
             timer_ = previous_timer_;
+            update_remaining_time();
             return;
         default: // includes new_state same as current state and impossible state changes.
             return;
         }
+
     case Program_State::PAUSED:
         switch( new_state )
         {
         case Program_State::SETTING:
-            timer_ = previous_timer_;
+            if( !pause_to_set_via_arrow_key )
+            {
+                timer_ = previous_timer_;
+            }
             for( Uint32 i = 0; i < Place_COUNT; i++ )
             {
                 set_digits_[ i ] = timer_.get_digit( i );
             }
             set_ms_ = timer_.milliseconds_in_second();
+            update_remaining_time( true );
             return;
         case Program_State::RUNNING:
-            total_time_ = timer_.milliseconds();
+            update_remaining_time( false );
             timer_.start();
             return;
         default: // includes new_state same as current state and impossible state changes.
@@ -401,12 +397,12 @@ int Program::run( void )
         case Program_State::PAUSED:
             //   Basically the same as setting the timer, having a seperate
             // function to for the PAUSED state would create more code
-            // duplication than just letting setting_timer() deal with the
+            // duplication than just letting set() deal with the
             // minor differences.
 
             //Fall through...
         case Program_State::SETTING:
-            setting_timer();
+            set();
             continue;
         case Program_State::RUNNING:
             timing();
@@ -456,7 +452,7 @@ void Program::timing( void )
 
 
 
-void Program::setting_timer( void )
+void Program::set( void )
 {
     if( key.spacebar )
     {
@@ -509,7 +505,7 @@ void Program::setting_timer( void )
     {
         if( state_ == Program_State::PAUSED )
         {
-            change_state_to( Program_State::SETTING );
+            change_state_to( Program_State::SETTING, true );
         }
         set_ms_ = 0;
         switch( selected_digit_ )
@@ -521,7 +517,7 @@ void Program::setting_timer( void )
             increment_digit( set_digits_[ Place_MINUTES_1s ] );
             break;
         case SECONDS_TENS:
-            increment_digit( set_digits_[ Place_SECONDS_10s ] );
+            increment_tens_of_minutes( set_digits_[ Place_SECONDS_10s ] );
             break;
         case SECONDS_ONES:
             increment_digit( set_digits_[ Place_SECONDS_1s ] );
@@ -534,7 +530,7 @@ void Program::setting_timer( void )
     {
         if( state_ == Program_State::PAUSED )
         {
-            change_state_to( Program_State::SETTING );
+            change_state_to( Program_State::SETTING, true );
         }
         set_ms_ = 0;
         switch( selected_digit_ )
@@ -546,7 +542,7 @@ void Program::setting_timer( void )
             decrement_digit( set_digits_[ Place_MINUTES_1s ] );
             break;
         case SECONDS_TENS:
-            decrement_digit( set_digits_[ Place_SECONDS_10s ] );
+            decrement_tens_of_minutes( set_digits_[ Place_SECONDS_10s ] );
             break;
         case SECONDS_ONES:
             decrement_digit( set_digits_[ Place_SECONDS_1s ] );
@@ -578,9 +574,13 @@ void Program::beeping( void )
 
 
 
-void Program::update_remaining_time( void )
+void Program::update_remaining_time( bool reset_total_time )
 {
     time_remaining_ = timer_.milliseconds();
+    if( reset_total_time )
+    {
+        total_time_ = time_remaining_;
+    }
     percentage_remaining_ = static_cast<double>( time_remaining_ ) / static_cast<double>( total_time_ );
 }
 

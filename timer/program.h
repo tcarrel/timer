@@ -50,7 +50,6 @@ class Program
     Uint32 set_digits_[ 4 ]{ 0, 2, 0, 0 };
     Uint32 set_ms_{ 0 };
 
-    bool is_time_remaining_{ true };
     bool successful_init_{ false };
     bool quit_{ false };
 
@@ -103,7 +102,7 @@ class Program
     Program_State previous_state_{ Program_State::SETTING };
     bool state_changed_{ false };
 
-    void update_remaining_time( void );
+    void update_remaining_time( bool reset_total_time = false );
 
     void update_title( void );
 
@@ -126,14 +125,13 @@ class Program
     void react_to_window_event( Uint8 e );
     void update_key_states( SDL_KeyboardEvent keyvent );
 
-    void start_timing( void );
     bool start_frame( void );
     void end_frame( void );
 
     SDL_Texture* create_texture_from_Image_Array( Image_Array* arr );
     SDL_Surface* create_surface_from_Image_Array( Image_Array* arr );
 
-    void change_state_to( Program_State new_state );
+    void change_state_to( Program_State new_state, bool pause_to_set_via_arrow_key = false );
 
 public:
     Program();
@@ -142,7 +140,7 @@ public:
     int run( void );
 
     void timing( void );
-    void setting_timer( void );
+    void set( void );
     void beeping( void );
 };
 

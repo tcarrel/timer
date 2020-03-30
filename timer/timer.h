@@ -43,8 +43,8 @@ public:
     void start( void );
     void update( void );
 
-    void setting_timer( Uint32 m10, Uint32 m1, Uint32 s10, Uint32 s1, Uint32 ms = 0 );
-    void setting_timer( Uint8 m, Uint8 s, Uint32 ms = 0 );
+    void set( Uint32 m10, Uint32 m1, Uint32 s10, Uint32 s1, Uint32 ms = 0 );
+    void set( Uint8 m, Uint8 s, Uint32 ms = 0 );
     bool done( void );
 
     Uint32 minutes( void );

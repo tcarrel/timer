@@ -3,7 +3,7 @@
 A very simple timer with a display where the remaining time is easy for young children to understand.
 
 I couldn't find one someone had already made that would work as I need, would be free, and wouldn't have any sort of advertising
-attached to it.
+attached to it in any way.
 
 ![Setting the timer](https://raw.githubusercontent.com/tcarrel/timer/master/image/stopped.png)
 Remaining time is very large and the time is very easy and quick to set using only the arrow keys.
